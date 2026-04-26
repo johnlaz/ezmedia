@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KidsMedia Downloader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#080a0f;
+  --s1:#0e1117;
+  --s2:#141820;
+  --s3:#1c2230;
+  --border:#1f2837;
+  --border2:#2a3548;
+  --accent:#f0c93a;
+  --accent2:#f97316;
+  --green:#4ade80;
+  --cyan:#38bdf8;
+  --red:#f87171;
+  --text:#dde3ee;
+  --muted:#566477;
+  --sans:'Syne',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* grain */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:999;
+}
+
+/* glow bg */
+body::before{
+  content:'';
+  position:fixed;
+  top:-200px;left:50%;
+  transform:translateX(-50%);
+  width:700px;height:400px;
+  background:radial-gradient(ellipse at center, rgba(240,201,58,0.06) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── Header ── */
+header{
+  position:relative;z-index:10;
+  padding:20px 32px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--s1);
+}
+
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{
+  width:36px;height:36px;
+  background:var(--accent);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  flex-shrink:0;
+}
+.brand-name{font-size:18px;font-weight:800;letter-spacing:-0.01em}
+.brand-tag{
+  font-family:var(--mono);font-size:9px;
+  color:var(--muted);letter-spacing:0.15em;
+  text-transform:uppercase;margin-top:1px;
+}
+
+.hdr-right{display:flex;align-items:center;gap:10px}
+
+/* ── Buttons ── */
+.btn{
+  font-family:var(--sans);font-size:13px;font-weight:600;
+  padding:9px 18px;border-radius:7px;
+  border:1px solid var(--border2);
+  background:var(--s2);color:var(--text);
+  cursor:pointer;transition:all .15s;
+  display:inline-flex;align-items:center;gap:7px;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--s3);border-color:var(--border2)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+.btn-accent{
+  background:var(--accent);border-color:var(--accent);
+  color:#1a0f00;font-weight:700;
+}
+.btn-accent:hover{background:#f5d866;border-color:#f5d866}
+
+.btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn-ghost:hover{background:var(--s2);color:var(--text);border-color:var(--border)}
+
+/* ── Layout ── */
+.app{
+  position:relative;z-index:1;
+  flex:1;
+  max-width:820px;width:100%;
+  margin:0 auto;
+  padding:36px 24px 60px;
+  display:flex;flex-direction:column;gap:20px;
+}
+
+/* ── Step indicator ── */
+.steps{
+  display:flex;align-items:center;gap:0;
+  font-family:var(--mono);font-size:11px;
+  margin-bottom:4px;
+}
+.step{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 14px 6px 10px;
+  color:var(--muted);
+  transition:color .2s;
+}
+.step.active{color:var(--accent)}
+.step.done{color:var(--green)}
+.step-num{
+  width:20px;height:20px;border-radius:50%;
+  border:1px solid currentColor;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:600;flex-shrink:0;
+}
+.step-arrow{color:var(--border2);margin:0 2px}
+
+/* ── Card ── */
+.card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  transition:border-color .2s;
+}
+.card.active-card{border-color:var(--border2)}
+
+.card-head{
+  padding:14px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--s2);
+}
+.card-title{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;gap:8px;
+}
+.card-title .dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--border2);flex-shrink:0;
+}
+.card-title .dot.live{background:var(--accent);animation:blink 1.8s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.card-body{padding:20px}
+
+/* ── Textarea ── */
+textarea{
+  width:100%;min-height:160px;
+  background:var(--bg);
+  border:1px solid var(--border2);border-radius:8px;
+  color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.8;
+  padding:14px 16px;resize:vertical;outline:none;
+  transition:border-color .2s;
+}
+textarea:focus{border-color:var(--accent)}
+textarea::placeholder{color:var(--muted)}
+
+/* ── Mode selector ── */
+.mode-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;margin-top:14px;flex-wrap:wrap;
+}
+
+.mode-pills{
+  display:flex;gap:0;
+  border:1px solid var(--border2);border-radius:8px;overflow:hidden;
+}
+.mode-pill{
+  padding:8px 20px;font-family:var(--sans);font-size:13px;font-weight:600;
+  border:none;background:transparent;color:var(--muted);cursor:pointer;
+  transition:all .15s;
+}
+.mode-pill.on{background:var(--accent);color:#1a0f00}
+
+/* quality */
+.q-select{
+  font-family:var(--mono);font-size:12px;
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:7px;color:var(--text);padding:8px 12px;outline:none;
+  cursor:pointer;
+}
+.q-select:focus{border-color:var(--accent)}
+
+/* ── Cleaned list ── */
+.cleaned-list{
+  display:flex;flex-direction:column;gap:6px;
+  max-height:320px;overflow-y:auto;
+  padding-right:4px;
+}
+.cleaned-list::-webkit-scrollbar{width:3px}
+.cleaned-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+.cleaned-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;
+  transition:border-color .15s;
+}
+.cleaned-item:hover{border-color:var(--border2)}
+.cleaned-item.url-item .ci-tag{background:rgba(56,189,248,.15);color:var(--cyan)}
+
+.ci-tag{
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  padding:2px 8px;border-radius:4px;letter-spacing:.08em;text-transform:uppercase;
+  background:rgba(240,201,58,.12);color:var(--accent);
+  flex-shrink:0;
+}
+
+.ci-text{
+  flex:1;font-size:13px;font-weight:500;
+  background:transparent;border:none;color:var(--text);
+  font-family:var(--sans);outline:none;width:100%;
+}
+.ci-text:focus{color:var(--accent)}
+
+.ci-del{
+  background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:16px;line-height:1;padding:2px 4px;
+  transition:color .1s;flex-shrink:0;
+}
+.ci-del:hover{color:var(--red)}
+
+/* ── Status / log ── */
+.log-area{
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:8px;padding:14px 16px;
+  min-height:140px;max-height:260px;overflow-y:auto;
+  font-family:var(--mono);font-size:12px;line-height:1.9;
+}
+.log-area::-webkit-scrollbar{width:3px}
+.log-area::-webkit-scrollbar-thumb{background:var(--border2)}
+
+.ll{display:block}
+.ll-info{color:var(--muted)}
+.ll-ok{color:var(--green)}
+.ll-warn{color:var(--accent)}
+.ll-err{color:var(--red)}
+.ll-url{color:var(--cyan)}
+
+.log-empty{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100px;color:var(--muted);font-size:12px;
+  font-style:italic;
+}
+
+/* ── Batch output ── */
+.batch-box{
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:8px;padding:16px;
+  font-family:var(--mono);font-size:12px;line-height:1.8;
+  color:var(--cyan);max-height:200px;overflow-y:auto;
+  white-space:pre-wrap;word-break:break-all;
+}
+.batch-box::-webkit-scrollbar{width:3px}
+.batch-box::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* ── Progress ── */
+.prog-wrap{
+  height:3px;background:var(--border2);border-radius:3px;
+  overflow:hidden;margin-top:14px;
+}
+.prog-bar{
+  height:100%;background:var(--accent);border-radius:3px;
+  transition:width .4s ease;width:0%;
+}
+
+/* ── Install notice ── */
+.install-box{
+  background:rgba(240,201,58,.05);
+  border:1px solid rgba(240,201,58,.2);
+  border-radius:10px;padding:16px 20px;
+  font-size:13px;line-height:1.7;
+}
+.install-box strong{color:var(--accent)}
+.install-box code{
+  font-family:var(--mono);font-size:12px;
+  background:var(--s3);padding:1px 7px;border-radius:4px;
+  color:var(--cyan);
+}
+
+/* ── Settings Modal ── */
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  z-index:200;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--s1);border:1px solid var(--border2);
+  border-radius:14px;width:460px;max-width:calc(100vw - 32px);
+  padding:30px;
+  transform:translateY(12px);transition:transform .2s;
+}
+.overlay.open .modal{transform:translateY(0)}
+
+.modal h2{font-size:17px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:24px}
+
+.fg{margin-bottom:18px}
+.fl{
+  display:block;font-size:11px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:7px;
+}
+input[type=text],input[type=password]{
+  width:100%;background:var(--bg);border:1px solid var(--border2);
+  border-radius:7px;color:var(--text);font-family:var(--mono);font-size:13px;
+  padding:10px 14px;outline:none;transition:border-color .2s;
+}
+input:focus{border-color:var(--accent)}
+.fn{margin-top:6px;font-size:11px;color:var(--muted);line-height:1.5}
+.fn a{color:var(--accent);text-decoration:none}
+.fn a:hover{text-decoration:underline}
+
+.modal-foot{
+  display:flex;justify-content:flex-end;gap:8px;
+  margin-top:22px;padding-top:18px;border-top:1px solid var(--border);
+}
+
+/* ── Badge ── */
+.badge{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  padding:2px 9px;border-radius:4px;letter-spacing:.06em;
+}
+.badge-y{background:rgba(240,201,58,.12);color:var(--accent)}
+.badge-g{background:rgba(74,222,128,.12);color:var(--green)}
+.badge-r{background:rgba(248,113,113,.12);color:var(--red)}
+
+/* ── Spinner ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{
+  width:13px;height:13px;border-radius:50%;
+  border:2px solid rgba(240,201,58,.25);
+  border-top-color:var(--accent);
+  animation:spin .65s linear infinite;
+  display:inline-block;flex-shrink:0;
+}
+
+/* ── Footer ── */
+footer{
+  position:relative;z-index:10;
+  border-top:1px solid var(--border);
+  padding:12px 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--s1);
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+}
+.status-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--green);display:inline-block;
+  margin-right:6px;animation:blink 2s ease-in-out infinite;
+}
+
+/* ── Divider ── */
+.divider{
+  display:flex;align-items:center;gap:12px;
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  letter-spacing:.1em;text-transform:uppercase;margin:4px 0;
+}
+.divider::before,.divider::after{
+  content:'';flex:1;height:1px;background:var(--border);
+}
+
+/* animate in */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.card{animation:fadeUp .35s ease both}
+.card:nth-child(2){animation-delay:.05s}
+.card:nth-child(3){animation-delay:.1s}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="brand">
+    <div class="brand-mark">🎬</div>
+    <div>
+      <div class="brand-name">KidsMedia</div>
+      <div class="brand-tag">Downloader · Windows · v1.0</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-ghost" id="settingsBtn">⚙ Settings</button>
+  </div>
+</header>
+
+<!-- App -->
+<div class="app">
+
+  <!-- Step indicator -->
+  <div class="steps">
+    <div class="step active" id="s1"><div class="step-num">1</div> Paste List</div>
+    <div class="step-arrow">›</div>
+    <div class="step" id="s2"><div class="step-num">2</div> Review &amp; Confirm</div>
+    <div class="step-arrow">›</div>
+    <div class="step" id="s3"><div class="step-num">3</div> Download</div>
+  </div>
+
+  <!-- Step 1: Input -->
+  <div class="card active-card" id="card1">
+    <div class="card-head">
+      <span class="card-title"><span class="dot live"></span>Step 1 — Paste Your List</span>
+      <span class="badge badge-y" id="linesBadge">0 items</span>
+    </div>
+    <div class="card-body">
+
+      <div class="install-box" style="margin-bottom:16px;font-size:12px;">
+        <strong>First time?</strong> You need <code>yt-dlp.exe</code> installed once.
+        <a href="https://github.com/yt-dlp/yt-dlp/releases/latest" target="_blank" style="color:var(--accent);">Download it here</a>
+        and place it somewhere on your PC. Set the path in <strong>⚙ Settings</strong>.
+      </div>
+
+      <textarea id="rawInput"
+        placeholder="Paste one title per line — or paste a YouTube URL directly:&#10;&#10;wheels on the bus cocomelon&#10;let it go frozen&#10;bluey dance mode&#10;https://www.youtube.com/watch?v=dQw4w9WgXcQ&#10;baby shark pinkfong"
+      ></textarea>
+
+      <div class="mode-row">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="mode-pills">
+            <button class="mode-pill on" data-m="video" onclick="setMode('video')">▶ Video</button>
+            <button class="mode-pill" data-m="audio" onclick="setMode('audio')">♪ Audio MP3</button>
+          </div>
+          <select class="q-select" id="qualSel">
+            <option value="2160">4K (2160p)</option>
+            <option value="1080" selected>1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+          </select>
+        </div>
+        <button class="btn btn-accent" id="cleanBtn" onclick="runClean()">
+          ✦ Clean with AI →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Step 2: Review cleaned list -->
+  <div class="card" id="card2" style="display:none;">
+    <div class="card-head">
+      <span class="card-title"><span class="dot" id="dot2"></span>Step 2 — Review Cleaned List</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="goBack()">← Back</button>
+        <button class="btn btn-accent" onclick="generateBatch()">Generate .bat →</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+        AI has cleaned your list. <strong style="color:var(--text);">Edit any line</strong> if needed, then generate the batch file.
+        URLs are passed through unchanged.
+      </p>
+      <div class="cleaned-list" id="cleanedList"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="addItem()">+ Add item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Download -->
+  <div class="card" id="card3" style="display:none;">
+    <div class="card-head">
+      <span class="card-title"><span class="dot" id="dot3"></span>Step 3 — Run Downloads</span>
+      <span class="badge badge-g" id="resultBadge"></span>
+    </div>
+    <div class="card-body">
+
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7;">
+        Your <code style="font-family:var(--mono);color:var(--cyan);font-size:12px;background:var(--s3);padding:1px 6px;border-radius:4px;">download.bat</code>
+        file is ready. Save it anywhere on your PC and double-click it to start all downloads.
+        Files save to the folder you set in ⚙ Settings.
+      </p>
+
+      <div class="batch-box" id="batchPreview"></div>
+
+      <div class="prog-wrap" id="progWrap" style="display:none;">
+        <div class="prog-bar" id="progBar"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+        <button class="btn btn-accent" id="saveBatBtn" onclick="saveBatch()">
+          ⬇ Save download.bat
+        </button>
+        <button class="btn" onclick="copyBatch()">⎘ Copy to clipboard</button>
+        <button class="btn btn-ghost" onclick="restart()">↺ Start over</button>
+      </div>
+
+      <div class="divider" style="margin-top:22px;">Log</div>
+
+      <div class="log-area" id="logArea">
+        <span class="log-empty">Batch file generated. Save and run it to download.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer>
+  <div><span class="status-dot"></span>Groq · llama-3.3-70b-versatile</div>
+  <div>yt-dlp required · no server needed</div>
+</footer>
+
+<!-- Settings Modal -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <h2>⚙ Settings</h2>
+    <p class="modal-sub">Saved in your browser. Nothing leaves your machine except the Groq API call.</p>
+
+    <div class="fg">
+      <label class="fl">Groq API Key</label>
+      <input type="password" id="groqKey" placeholder="gsk_..." autocomplete="off"/>
+      <p class="fn">Free key at <a href="https://console.groq.com" target="_blank">console.groq.com</a>. Required for AI cleaning.</p>
+    </div>
+
+    <div class="fg">
+      <label class="fl">yt-dlp.exe Path</label>
+      <input type="text" id="ytdlpPath" placeholder="C:\Tools\yt-dlp.exe"/>
+      <p class="fn">Full path to yt-dlp.exe on your PC. <a href="https://github.com/yt-dlp/yt-dlp/releases/latest" target="_blank">Download yt-dlp</a></p>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Download Folder</label>
+      <input type="text" id="dlFolder" placeholder="C:\Users\You\Downloads\KidsMedia"/>
+      <p class="fn">Where downloaded files are saved. Separate video/audio subfolders are created automatically.</p>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let mode = 'video';
+let cleanedItems = []; // [{type:'search'|'url', value:string, original:string}]
+let batchScript = '';
+let cfg = { groqKey:'', ytdlpPath:'yt-dlp', dlFolder:'C:\\Users\\Downloads\\KidsMedia' };
+
+const isUrl = s => /^https?:\/\//i.test(s.trim());
+
+// ── Init ───────────────────────────────────────────────────────────────
+(function init(){
+  const saved = localStorage.getItem('kmsettings');
+  if(saved){ cfg = {...cfg,...JSON.parse(saved)}; }
+  document.getElementById('groqKey').value = cfg.groqKey||'';
+  document.getElementById('ytdlpPath').value = cfg.ytdlpPath||'';
+  document.getElementById('dlFolder').value = cfg.dlFolder||'';
+  document.getElementById('rawInput').addEventListener('input', countLines);
+})();
+
+function countLines(){
+  const n = document.getElementById('rawInput').value
+    .split('\n').filter(l=>l.trim()).length;
+  document.getElementById('linesBadge').textContent = n+' item'+(n!==1?'s':'');
+}
+
+// ── Mode ───────────────────────────────────────────────────────────────
+function setMode(m){
+  mode = m;
+  document.querySelectorAll('.mode-pill').forEach(b=>{
+    b.classList.toggle('on', b.dataset.m === m);
+  });
+  const qs = document.getElementById('qualSel');
+  qs.style.display = m==='video' ? '' : 'none';
+}
+
+// ── Step nav ───────────────────────────────────────────────────────────
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    const s = document.getElementById('s'+i);
+    s.classList.remove('active','done');
+    if(i<n) s.classList.add('done');
+    else if(i===n) s.classList.add('active');
+    // update dot
+    const dot = document.getElementById('dot'+i);
+    if(dot){ dot.classList.toggle('live', i===n); }
+  });
+}
+
+function goBack(){
+  document.getElementById('card2').style.display='none';
+  document.getElementById('card1').style.display='';
+  setStep(1);
+}
+
+function restart(){
+  document.getElementById('card2').style.display='none';
+  document.getElementById('card3').style.display='none';
+  document.getElementById('card1').style.display='';
+  document.getElementById('rawInput').value='';
+  countLines();
+  setStep(1);
+}
+
+// ── AI Clean ───────────────────────────────────────────────────────────
+async function runClean(){
+  const raw = document.getElementById('rawInput').value.trim();
+  if(!raw){ alert('Paste some titles first!'); return; }
+
+  if(!cfg.groqKey){
+    alert('Add your Groq API key in ⚙ Settings first.');
+    openSettings(); return;
+  }
+
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  // Separate URLs (pass-through) from search terms
+  const urls = lines.filter(isUrl);
+  const searches = lines.filter(l=>!isUrl(l));
+
+  const btn = document.getElementById('cleanBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin"></span> Cleaning…';
+
+  let refined = searches;
+
+  if(searches.length){
+    try{
+      const res = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':cfg.groqKey,'anthropic-version':'2023-06-01'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1000,
+          messages:[{role:'user',content:searches.join('\n')}],
+          system:'You are a media librarian. Convert each line into the most effective YouTube search term to find the exact kids song or video. Return ONLY the optimised search terms, one per line, same count as input. No bullets, no numbers, no explanation.'
+        })
+      });
+      // Try Groq if that fails (Groq uses OpenAI-compatible format)
+      if(!res.ok) throw new Error('anthropic_fail');
+      const d = await res.json();
+      const txt = d.content?.[0]?.text || '';
+      refined = txt.trim().split('\n').map(s=>s.trim()).filter(Boolean);
+      if(refined.length !== searches.length) refined = searches; // fallback
+    } catch(e) {
+      // Try Groq API
+      try{
+        const res2 = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.groqKey},
+          body:JSON.stringify({
+            model:'llama-3.3-70b-versatile',
+            max_tokens:1000,
+            messages:[
+              {role:'system',content:'You are a media librarian. Convert each line into the most effective YouTube search term to find the exact kids song or video. Return ONLY the optimised search terms, one per line, same count as input. No bullets, no numbers, no explanation.'},
+              {role:'user',content:searches.join('\n')}
+            ]
+          })
+        });
+        if(!res2.ok) throw new Error('groq_fail');
+        const d2 = await res2.json();
+        const txt2 = d2.choices?.[0]?.message?.content || '';
+        refined = txt2.trim().split('\n').map(s=>s.trim()).filter(Boolean);
+        if(refined.length !== searches.length) refined = searches;
+      } catch(e2){
+        alert('AI cleaning failed. Check your Groq API key in Settings.\n\nYour original list will be used.');
+        refined = searches;
+      }
+    }
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='✦ Clean with AI →';
+
+  // Build cleaned items — refined searches first, then URLs
+  cleanedItems = [
+    ...refined.map((v,i)=>({type:'search',value:v,original:searches[i]||v})),
+    ...urls.map(v=>({type:'url',value:v,original:v}))
+  ];
+
+  renderCleanedList();
+  document.getElementById('card1').style.display='none';
+  document.getElementById('card2').style.display='';
+  setStep(2);
+}
+
+// ── Render cleaned list ────────────────────────────────────────────────
+function renderCleanedList(){
+  const el = document.getElementById('cleanedList');
+  el.innerHTML = cleanedItems.map((item,i)=>`
+    <div class="cleaned-item ${item.type==='url'?'url-item':''}" id="ci_${i}">
+      <span class="ci-tag">${item.type==='url'?'URL':'SEARCH'}</span>
+      <input class="ci-text" value="${escHtml(item.value)}" 
+        onchange="cleanedItems[${i}].value=this.value"
+        placeholder="Search term or URL"/>
+      <button class="ci-del" onclick="removeItem(${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+}
+
+function removeItem(i){
+  cleanedItems.splice(i,1);
+  renderCleanedList();
+}
+
+function addItem(){
+  cleanedItems.push({type:'search',value:'',original:''});
+  renderCleanedList();
+  // focus last input
+  setTimeout(()=>{
+    const inputs = document.querySelectorAll('.ci-text');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  },50);
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ── Generate batch file ────────────────────────────────────────────────
+function generateBatch(){
+  const items = cleanedItems.filter(i=>i.value.trim());
+  if(!items.length){ alert('List is empty!'); return; }
+
+  const exe   = cfg.ytdlpPath || 'yt-dlp';
+  const folder= cfg.dlFolder  || '.';
+  const qual  = document.getElementById('qualSel').value;
+
+  let lines = ['@echo off','echo KidsMedia Downloader — starting...','echo.',''];
+
+  // Create folders
+  if(mode==='video'){
+    lines.push(`if not exist "${folder}\\video" mkdir "${folder}\\video"`);
+  } else {
+    lines.push(`if not exist "${folder}\\audio" mkdir "${folder}\\audio"`);
+  }
+  lines.push('');
+
+  items.forEach((item,idx)=>{
+    const label = item.value.replace(/"/g,"'");
+    lines.push(`echo [${idx+1}/${items.length}] Downloading: ${label}`);
+
+    if(mode==='video'){
+      const fmt = `bestvideo[height<=${qual}]+bestaudio/best[height<=${qual}]`;
+      if(item.type==='url'){
+        lines.push(`"${exe}" -f "${fmt}" --merge-output-format mp4 --embed-thumbnail --add-metadata -o "${folder}\\video\\%%(title)s.%%(ext)s" "${item.value}"`);
+      } else {
+        lines.push(`"${exe}" -f "${fmt}" --merge-output-format mp4 --embed-thumbnail --add-metadata -o "${folder}\\video\\%%(title)s.%%(ext)s" "ytsearch1:${item.value}"`);
+      }
+    } else {
+      if(item.type==='url'){
+        lines.push(`"${exe}" -x --audio-format mp3 --audio-quality 192K --embed-thumbnail --add-metadata -o "${folder}\\audio\\%%(title)s.%%(ext)s" "${item.value}"`);
+      } else {
+        lines.push(`"${exe}" -x --audio-format mp3 --audio-quality 192K --embed-thumbnail --add-metadata -o "${folder}\\audio\\%%(title)s.%%(ext)s" "ytsearch1:${item.value}"`);
+      }
+    }
+    lines.push('');
+  });
+
+  lines.push('echo.');
+  lines.push('echo All done! Files saved to: '+folder+(mode==='video'?'\\video':'\\audio'));
+  lines.push('pause');
+
+  batchScript = lines.join('\r\n');
+
+  // Preview (show first 40 lines max)
+  const preview = lines.slice(0,40).join('\n') + (lines.length>40 ? '\n...' : '');
+  document.getElementById('batchPreview').textContent = preview;
+  document.getElementById('resultBadge').textContent = items.length+' item'+(items.length!==1?'s':'');
+
+  // Log
+  const log = document.getElementById('logArea');
+  log.innerHTML = '';
+  appendLog('ok', `✅ Batch file generated with ${items.length} download command(s).`);
+  appendLog('warn', `📁 Output folder: ${folder}\\${mode}`);
+  items.forEach((item,i)=>{
+    appendLog(item.type==='url'?'url':'info',
+      `  ${i+1}. [${item.type==='url'?'URL':'search'}] ${item.value}`);
+  });
+  appendLog('info','');
+  appendLog('ok','Save download.bat and double-click it to run all downloads.');
+
+  document.getElementById('card2').style.display='none';
+  document.getElementById('card3').style.display='';
+  setStep(3);
+}
+
+function appendLog(type, msg){
+  const el = document.getElementById('logArea');
+  const empty = el.querySelector('.log-empty');
+  if(empty) empty.remove();
+  const span = document.createElement('span');
+  span.className = 'll ll-'+type;
+  span.textContent = msg;
+  el.appendChild(span);
+  el.appendChild(document.createTextNode('\n'));
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Save batch ─────────────────────────────────────────────────────────
+function saveBatch(){
+  if(!batchScript){ alert('Generate the batch first.'); return; }
+  const blob = new Blob([batchScript], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'download.bat';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  appendLog('ok','✅ download.bat saved. Double-click it to run!');
+}
+
+function copyBatch(){
+  if(!batchScript) return;
+  navigator.clipboard.writeText(batchScript).then(()=>{
+    appendLog('ok','⎘ Copied to clipboard.');
+  });
+}
+
+// ── Settings ───────────────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('overlay').classList.remove('open');
+}
+function overlayClick(e){
+  if(e.target===document.getElementById('overlay')) closeSettings();
+}
+function saveSettings(){
+  cfg.groqKey    = document.getElementById('groqKey').value.trim();
+  cfg.ytdlpPath  = document.getElementById('ytdlpPath').value.trim();
+  cfg.dlFolder   = document.getElementById('dlFolder').value.trim();
+  localStorage.setItem('kmsettings', JSON.stringify(cfg));
+  closeSettings();
+}
+document.getElementById('settingsBtn').addEventListener('click', openSettings);
+</script>
+</body>
+</html>
